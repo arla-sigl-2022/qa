@@ -443,6 +443,20 @@ Create a new branch called `create-ci-env` (`git checkout -b create-ci-env`).
 
 Make sure all of the following changes are on this branch. This will be usefull for the last part of this step.
 
+### Adapt your Auth0 configuration
+
+You need to allow auth requests from/to the new ci domain: `https://ci.groupeXX.arla-sigl.fr` and `https://ci.api.groupeXX.arla-sigl.fr`.
+
+> Note: Otherwise you will encounter CORS issues
+
+From your Auth dashboard > Application add in every sections with url the new CI url (https://ci.groupeXX.arla-sigl.fr).
+
+Here it what it should look like with groupe13:
+![auth ci url 1](docs/auth-ci-url-1.png)
+![auth ci url 2](docs/auth-ci-url-2.png)
+
+Save your changes.
+
 ### Different Database instances
 
 We created for you 2 different instances of Postgresql:
@@ -476,76 +490,76 @@ For instance, you should remove the `pull_request: ...` close
 
 ```yml
 # This is a basic workflow to help you get started with Actions
-name: CD
 
-# Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the master branch
+name: CD with docker
+
+# Controls when the workflow will run
 on:
+  # Triggers the workflow on push or pull request events but only for the main branch
   push:
-    branches: [master]
+    branches: [ main ]
   # REMOVE 2 lines below
   pull_request: # DELETE ME!
-    branches: [master] # DELETE ME!
+    branches: [ main ] # DELETE ME!
 ```
 
 So it should look like:
 
 ```yml
 # This is a basic workflow to help you get started with Actions
-name: CD
 
-# Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the master branch
+name: CD with docker
+
+# Controls when the workflow will run
 on:
+  # Triggers the workflow on push or pull request events but only for the main branch
   push:
-    branches: [master]
-# ...
-```
-
-In your github action, add a `.github/workflows/ci.yml` file with :
-
-> NOTE: make sure to replace \<git_user\>/\<arla-group-XX\> by your group's info (e.g. for group13 ffauchille/arla-group-13)
-
-```yml
-name: Deploy CI
-
-on:
-  pull_request:
-    branches: [master]
-
+    branches: [ main ]
 jobs:
-  build-and-deploy-ci-api:
-  #
+
 ```
+Let's create a new CI workflow.
+- Modify frontend build to have the CI web api address:
+  - in your frontend/ directory:
+    - Create a copy of Dockerfile to Dockerfile.ci
+    - And modify the `RUN npm run build` to `RUN npm run build:ci`
+    - in your package.json (still in frontend/), add a new script `"build:ci"` like: 
+    ```json5
+      // inside frontend/package.json
+      // replace groupeXX by your group number
+      //...
+      "scripts": {
+        "start": "REACT_APP_API_HOST=http://localhost:3030 node scripts/start.js",
+        "build": "REACT_APP_API_HOST=https://api.groupeXX.arla-sigl.fr node scripts/build.js",
+        "build:ci": "REACT_APP_API_HOST=https://ci.api.groupeXX.arla-sigl.fr node scripts/build.js",
+        // ...
+    }
+    ```
+- In your github action, add a `.github/workflows/ci.yml` file and copy the content of your `.github/workflows/main.yml` file.
+- Replace all occurences of `garlaxy` by `ci-garlaxy`
+- Replace your frontend's Host docker label by `ci.groupeXX.arla-sigl.fr`
+- Replace your backend's Host docker label by `ci.api.groupeXX.arla-sigl.fr`
+- Replace your `secrets.RDB_` prefix for .env vars by `secrets.CI_RDB_`
+- Replace your `secrets.DDB_` prefix for .env vars by `secrets.CI_DDB_`
+- Create new secrets use in this new `ci.yml` github workflow.
+  - From your github repository, go to Settings > Secrets and add the follwing secrets values:
+    - CI_RDB_HOST: ci.postgresql.arla-sigl.fr
+    - CI_RDB_PORT: 5432
+    - CI_RDB_DATABASE: garlaxy-group-XX (replace XX by your group number)
+    - CI_RDB_PASSWORD: garlaxy-group-XX (replace XX by your group number)
+    - CI_RDB_USER: garlaxy-group-XX (replace XX by your group number)
+    - CI_DDB_HOST: ci.mongo.arla-sigl.fr
+    - CI_DDB_PORT: 27017
+    - CI_DDB_AUTH_SOURCE: garlaxy-group-XX (replace XX by your group number)
+    - CI_DDB_DATABASE: garlaxy-group-XX (replace XX by your group number)
+    - CI_DDB_USER: garlaxy-group-XX (replace XX by your group number)
+    - CI_DDB_PASSWORD: garlaxy-group-XX (replace XX by your group number)
 
-Create new secrets use in this new `ci.yml` github workflow.
-- From your github repository, go to Settings > Secrets and add the follwing secrets values:
-  - CI_RDS_HOST: ci.postgresql.arla-sigl.fr
-  - CI_RDS_PORT: 5432
-  - CI_RDS_NAME: garlaxy-group-XX (replace XX by your group number)
-  - CI_RDS_PASSWORD: garlaxy-group-XX (replace XX by your group number)
-  - CI_RDS_USER: garlaxy-group-XX (replace XX by your group number)
+You should have the following list of secrets:
+![secrets for db](docs/ci-db-secrets.png)
 
-- CI_DDB_HOST: ci.mongo.arla-sigl.fr
-- CI_DDB_PORT: 27017
-- CI_DDB_AUTH_SOURCE: garlaxy-group-XX (replace XX by your group number)
-- CI_DDB_NAME: garlaxy-group-XX (replace XX by your group number)
-- CI_DDB_USER: garlaxy-group-XX (replace XX by your group number)
-- CI_DDB_PASSWORD: garlaxy-group-XX (replace XX by your group number)
+> Note: You can check out [group's 13 step 4 and compare with your own group](https://github.com/arla-sigl-2022/groupe-13/pull/7/commits/48a2a582af98bb39b7efe2629604310ef1c0eebb)
 
-### Adapt your Auth configuration
-
-You need to allow auth requests from/to the new ci domain: https://ci.groupeXX.arla-sigl.fr.
-
-> Note: failing to do so would result in CORS issues
-
-From your Auth dashboard > Application add in every sections with url the new CI url (https://ci.groupeXX.arla-sigl.fr).
-
-Here it what it should look like with groupe11:
-![auth ci url 1](docs/auth-ci-url-1.png)
-![auth ci url 2](docs/auth-ci-url-2.png)
-
-Save your changes.
 
 ### Deploy your CI environment
 
@@ -554,6 +568,9 @@ To deploy your new CI environment, you need to create a new pull request in your
 To do so, push all your changes made from your `create-ci-env` branch:
 
 ```sh
+# from yo
+git add .github
+git commit -m "CI: new workflow"
 git push origin create-ci-env
 ```
 
@@ -567,4 +584,9 @@ Congratulation! You just created a new environment for garlaxy, which connects t
 
 ## Step 5: Integrate test to your CD pipeline
 
-This step will be shown in class.
+You can [adapt those changes in group 13 from Step 4 to Step 5](https://github.com/arla-sigl-2022/groupe-13/pull/7/commits/8a635b62a9b6a7a05e9b3128f66b9ff81afb9280) to your own group.
+You need to add those new secrets in your Github > Settings > Secrets env var with values from Step 2:
+- AUTH0_CLIENT_ID
+- AUTH0_CLIENT_SECRET
+- AUTH0_TOKEN_URL
+- AUTH0_AUDIENCE
