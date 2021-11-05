@@ -14,11 +14,9 @@ You will learn how to:
 
 **Objective**: Write a non-regression unit test for your `utils` method in your web API.
 
-Your API is using a paging system based on 2 query parameters `page` and `limit`.
-
-The logic is written inside the function `extractPageOptions` of your group's project in `backend/src/utils.js` file.
-
-You will write a set of unit test to make sure that the method works as expected.
+- Your API is using a paging system based on 2 query parameters `page` and `limit`.
+- The logic is written inside the function `extractPageOptions` of your group's project in `backend/src/utils.js` file.
+- You will write a set of unit test to make sure that the method works as expected.
 
 ### Install Jest
 
@@ -38,9 +36,10 @@ npm i --save-dev jest
 # It should create a jest.config.js
 ```
 
-Now, let's add a new script inside your `package.json` file to run test using jest when typing `npm test`:
+Now, let's add a new script inside your `backend/package.json` file to run test using jest when typing `npm test`:
 
 ```json5
+// inside backend/package.json
 // ...
   "scripts": {
     // "build": ...,
@@ -67,8 +66,7 @@ Let's first create a simple unit test to check the expected behaviour of the `ex
 Create a new file `backend/src/utils.spec.js` with:
 
 ```js
-import qs from "qs";
-import { extractPageOptions } from "./utils";
+const { extractPageOptions } = require("./utils");
 
 describe("extractPageOptions", () => {
   it("should correctly extract page and limit options when present", () => {
@@ -78,6 +76,7 @@ describe("extractPageOptions", () => {
     expect(limit).toEqual(10);
   });
 });
+
 ```
 
 Now run this test and make sure it's running without error:
@@ -85,24 +84,26 @@ Now run this test and make sure it's running without error:
 ```sh
 # from backend/
 # Both `npm t` and `npm test` are equivalent
+nvm use v16
 npm test
+
 # Output:
-# > template-api@1.0.0 test ...
+# > backend@1.0.0 test
 # > jest --passWithNoTests
-#
+# 
 #  PASS  src/utils.spec.js
 #   extractPageOptions
-#     ✓ should correctly extract page and limit options when present (3 ms)
-#
+#     ✓ should correctly extract page and limit options when present (2 ms)
+# 
 # Test Suites: 1 passed, 1 total
 # Tests:       1 passed, 1 total
 # Snapshots:   0 total
-# Time:        1.911 s, estimated 2 s
+# Time:        0.332 s
 # Ran all test suites.
 ```
 
-Now, to make sure test is correctly implemented, let's make it fail on purpose.
-Replace `expect(page).toEqual(1);` by `expect(page).toEqual(1000);`, and run `npm test` again.
+- make sure test is correctly implemented, let's make it fail on purpose. Replace `expect(page).toEqual(1);` by `expect(page).toEqual(1000);`
+- run `npm test` again.
 
 You should see an error like:
 
@@ -142,73 +143,60 @@ npm ERR! Test failed.  See above for more details.
 
 You can see that the test failed, as expected!
 
-Revert changes to make it green again (`expect(page).toEqual(1);` instead of `expect(page).toEqual(1000);`)
-
-Let's add new unit test to check if errors are correclty thrown when one of the option is missing:
-
-```ts
+- Revert changes to make it green again (`expect(page).toEqual(1);` instead of `expect(page).toEqual(1000);`)
+- add new unit test to check if errors are correclty thrown when one of the option is missing:
+```js
 // inside describe() after the first it()
 // ...
-it("should throw an error when page is missing", () => {
-  const onlyLimit: qs.ParsedQs = {
-    limit: "10",
-  };
-  expect(() => extractPageOptions(onlyLimit)).toThrowError(
-    new Error("page needs to be a valid number")
-  );
-});
+  it("should throw an error when page is missing", () => {
+    const onlyLimit = {
+      limit: "10",
+    };
+    expect(() => extractPageOptions(onlyLimit)).toThrowError(
+      new Error("missing query option: page")
+    );
+  });
 
-it("should throw an error when limit is missing", () => {
-  const onlyPage: qs.ParsedQs = {
-    page: "10",
-  };
-  expect(() => extractPageOptions(onlyPage)).toThrowError(
-    new Error("limit needs to be a valid number")
-  );
-});
+  it("should throw an error when limit is missing", () => {
+    const onlyPage = {
+      page: "10",
+    };
+    expect(() => extractPageOptions(onlyPage)).toThrowError(
+      new Error("missing query option: limit")
+    );
+  });
 // ...
 ```
-
-Now add a unit test to check if an error is thrown when a given option is not a valid number:
-
+- add another unit test to check if an error is thrown when a given option is not a valid number:
 ```ts
-// ...
-it("should throw an error when page is not a number", () => {
-  const invalidPageNaN = {
-    page: "page1",
-    limit: "10",
-  };
-  expect(() => extractPageOptions(invalidPageNaN)).toThrowError(
-    new Error("page needs to be a valid number")
-  );
+  // inside describe() after the last it()
   // ...
-});
+  it("should throw an error when page is not a number", () => {
+    const invalidPageNaN = {
+      page: "page1",
+      limit: "10",
+    };
+    expect(() => extractPageOptions(invalidPageNaN)).toThrowError(
+      new Error("page needs to be a valid number")
+    );
+  });
+  // ...
 ```
 
-Your turn to practice!
-
-Try to implement a unit test to check that an error is thrown when the option page is a negative number:
-
-```ts
-it("should throw an error when page is negative", () => {
-  // TODO: your turn to practice!
-});
-```
+> Note: You can check [step 1 files for groupe 13](https://github.com/arla-sigl-2022/groupe-13/pull/6/commits/84bb1c4b65ea2eba866fce3ec1203b960880dcb8)
 
 ## Step 2: Implement functional test
 
 **Objective**: Implement a functional test on your contractor API.
 
-You will use [Cucumber](https://cucumber.io) to write [BDD](https://en.wikipedia.org/wiki/Behavior-driven_development) tests using the NodeJS implementation [Cucumber-js](https://cucumber.io/docs/installation/javascript/).
-
-This tool seperates the test specification in seperated `.feature` files. Those features can be written by non-dev people in your team, and goes in the direction of BDD for writing tests.
-
-This will be a nice functional test testing if the API works as expected, including the connection to the database.
+- You will use [Cucumber](https://cucumber.io) to write [BDD](https://en.wikipedia.org/wiki/Behavior-driven_development) tests using the NodeJS implementation [Cucumber-js](https://cucumber.io/docs/installation/javascript/).
+- This tool seperates the test specification in seperated `.feature` files. Those features can be written by non-dev people in your team, and goes in the direction of BDD for writing tests.
+- This will be a nice functional test testing if the API works as expected, including the connection to the database.
 
 ### Start your API with PostgreSQL
 
 Before starting the Cucumber specification, you should start your services on your local machine:
-- you web API inside your `backend/` folder:
+- your web API inside your `backend/` folder:
 ```sh
 # from backend/
 nvm use v16
@@ -225,7 +213,7 @@ docker-compose up -d
 # just type `docker ps` command and you should see your databases containers
 ```
 
-### Cucumber
+### Write your Cucumber test
 
 - Copy the whole `cucumber` folder at the root of your group's repository.
 
@@ -237,10 +225,22 @@ docker-compose up -d
 nvm use v16
 npm install
 ```
+- Cucumber will make calls to your authenticated web API. Get credentials needed from your Auth0 dashboard.
+  - Go to Application > APIs > arla-groupe-XX-api and note down credentials:
+  ![auth0 creds](docs/auth0-credentials-cucumber.png)
+  - create a `.env` file to keep Auth0 credentials secrets with:
+  ```ini
+    # inside cucumber/.env 
+    AUTH0_CLIENT_ID=<your api client id from Auth0>
+    AUTH0_CLIENT_SECRET=<your api client secret from Auth0>
+    AUTH0_TOKEN_URL=https://garlaxy-groupe-XX.eu.auth0.com/oauth/token
+    AUTH0_AUDIENCE=https://api.groupeXX.arla-sigl.fr
+    API_URL=http://localhost:3030
+  ```
 
-Then, have a look at the test inside the [cucumber/features](cucumber/features) folder:
+Have a look at the test inside the [cucumber/features](cucumber/features) folder:
 - [The feature file in cucumber/features/contractor-comments.feature](cucumber/features/contractor-comments.feature): This cucumber feature describes in a templated way how the contractor API should behave when a user calls the API with different `contractor`, `page` and `limit` options.
-- [Then, the corresponding step definitions in cucumber/features/contractor-comments.feature](cucumber/features/contractor-comments.feature): The code implementing the corresponding behaviour of each steps define in the `.feature` file.
+- [Then, the corresponding step definitions in cucumber/features/step_definitions/contractorComments.js](cucumber/features/step_definitions/contractorComments.js): The code implementing the corresponding behaviour of each steps define in the `.feature` file.
 ```plain
 ...
       Given a contractor "<contractor>", <page> and <limit>
@@ -256,9 +256,9 @@ When("a user calls contractor comment API", ...);
 Then("the user should recieve {int}", ...);
 ```
 
-Since your web API is behind authentication, you are using your secrets from Auth0 dashboard to get an authorization token everytime you run the spec (See. `getAuthToken` method).
+You are using your secrets from Auth0 dashboard to get an authorization token everytime you run the spec (See. `getAuthToken` function).
 
-Run your cucumber test:
+- Run your cucumber test:
 ```sh
 # from cucumber/ folder
 nvm use v16
@@ -274,9 +274,9 @@ npm test
 0m01.759s (executing steps: 0m01.745s)
 ```
 
-Most of testing tools (including cucumber) offers test outputs as HTML file, sothat you can see more info about which tests are failing. This becomes usefull when you have thousands of tests and you need to browse in them.
+Most of testing tools (including cucumber) offers test outputs as HTML file, sothat you can see more info about which tests are failing. This   becomes usefull when you have thousands of tests and you need to browse in them.
 
-You can run the `report` script to generate test report for your cucumber test:
+- You can run the `report` script to generate test report for your cucumber test:
 ```sh
 # from cucumber/ folder
 nvm use v16
