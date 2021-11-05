@@ -40,7 +40,7 @@ npm i --save-dev jest
 
 Now, let's add a new script inside your `package.json` file to run test using jest when typing `npm test`:
 
-```json
+```json5
 // ...
   "scripts": {
     // "build": ...,
@@ -304,7 +304,7 @@ npm init --yes
 npm i --save-dev cypress
 ```
 - add a new `script` entry in your `e2e/package.json` file:
-```json
+```json5
   //...
   "scripts": {
     //...
@@ -379,7 +379,7 @@ cy.get("#1-email");
 cy.get('[name="password"]');
 ```
 - disable chrome security to allow selection in iframes:
-```json
+```json5
 // from e2e/cypress.json
 {
   "chromeWebSecurity": false
