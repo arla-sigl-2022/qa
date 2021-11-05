@@ -584,9 +584,18 @@ Congratulation! You just created a new environment for garlaxy, which connects t
 
 ## Step 5: Integrate test to your CD pipeline
 
-You can [adapt those changes in group 13 from Step 4 to Step 5](https://github.com/arla-sigl-2022/groupe-13/pull/7/commits/8a635b62a9b6a7a05e9b3128f66b9ff81afb9280) to your own group.
-You need to add those new secrets in your Github > Settings > Secrets env var with values from Step 2:
+
+You need to apply changes : 
+- [e2e/package.json](https://github.com/arla-sigl-2022/groupe-13/pull/7/commits/e3e1acbec3f16142e61d10c60c274b3eed1ce8b0#diff-a02b008b50077ce0795c0dee89c3b663ead543e6d790874baece325aee7f1043) Add "cypress:ci" script to run e2e over `https://ci.groupeXX.arla-sigl.fr` (make sure to put correct group number)
+- [.github/workflows/ci.yml](https://github.com/arla-sigl-2022/groupe-13/pull/7/commits/e3e1acbec3f16142e61d10c60c274b3eed1ce8b0#diff-b803fcb7f17ed9235f1e5cb1fcd2f5d3b2838429d4368ae4c57ce4436577f03f) add 3 level of tests as jobs in your ci.yml github workflow
+- Add those new secrets in your Github > Settings > Secrets env var with values from Step 2:
 - AUTH0_CLIENT_ID
 - AUTH0_CLIENT_SECRET
 - AUTH0_TOKEN_URL
 - AUTH0_AUDIENCE
+
+- push your changes on `create-ci-env` branch.
+- and from your groupe's repository on github, go to Pull requests > create new pull request from `create-ci-env` to `main`
+- You should see your action running in the Actions tab of your github project.
+
+> Note: All changes [group 13 from Step 4 to Step 5 are here](https://github.com/arla-sigl-2022/groupe-13/pull/7/commits/48a2a582af98bb39b7efe2629604310ef1c0eebb)
