@@ -289,6 +289,8 @@ You should see a report.html file. Just open it with any browser. This should lo
 > Note: you are outside of the code of your web API,
 > as opposed to your unit tests behing directly inside the code of your API.
 
+> Note 2: You can [check groupe 13's step 2 results](https://github.com/arla-sigl-2022/groupe-13/pull/6/commits/6abbaacf4549337f831068f7570349a1583cf487)
+
 ## Step 3: Implement e2e test with Cypress
 
 **Objective**: Implement an end to end (a.k.a e2e) test for the login on garlaxy. This means reproduce actions of a user using your frontend and asserting what the user should see.
@@ -305,10 +307,11 @@ npm i --save-dev cypress
 ```
 - add a new `script` entry in your `e2e/package.json` file:
 ```json5
+  // inside e2e/package.json
   //...
   "scripts": {
     //...
-    "cypress:open": "cypress open"
+    "cypress:open": "CYPRESS_GARLAXY_URL=http://localhost:3000 cypress open"
     //...
   }
 ```
@@ -322,36 +325,45 @@ npm run cypress:open
 After some time, you should see a new window on your computer like:
 ![cypress-open](docs/cypress-open.png)
 
-Cypress provides you with some example E2E tests.
-
-After clicking on `OK, got it!`, feel free to run some tests from this cypress console to see how cypress works.
-
-Source code of those test has been added under `e2e/cypress/integration/examples` folder.
+- Cypress provides you with some example E2E tests.
+- Feel free to run one of them
+- Source code of those test has been added under `e2e/cypress/integration/` folder.
 
 ### Create a user for cypress in your Auth0 dashboard
 
 In order to login when running your E2E test, you need a valid user.
 
-From your dashboard of your IDP (OAuth0 in this case), create a new user with name and password of your choice.
-
-Once it is created, make sure you can login to your application with your newly created user, either from localhost or directly from your production address (https://groupeXX.arla-sigl.fr)
-
-### Write your login spec
+- From your Auth0 dashboard, create a new user with name and password of your choice for garlaxy (User Management > Users > Create User).
+- Make sure your frontend, backend and databases are runnning locally
+  - you should be able to login with the user you've just created on http://localhost:3000
+### Write your login e2e
 
 Cypress executes `spec` (for specifications), which describe numberous steps with assertion about what the user is suppose to see, recieve when he clicks/types on some elements.
 
+- disable chrome security to allow selection in iframes:
+```json5
+// from e2e/cypress.json
+{
+  "chromeWebSecurity": false
+}
+```
 - create a new file `e2e/cypress/integration/login/user-login.spec.js` with:
 ```js
 // inside e2e/cypress/integration/login/user-login.spec.js
 describe("Garlaxy login", () => {
-  // Replace it with your groupe address
-  const garlaxyUrl = "https://groupeXX.arla-sigl.fr";
+  const garlaxyUrl = Cypress.env("GARLAXY_URL");
+  Cypress.on("uncaught:exception", (err, runnable) => {
+    // returning false here prevents Cypress from
+    // failing the test when user gets redirected to login
+    // because she/he is not authenticated.
+    return false;
+  });
+
   it("should allow user to login", () => {
     cy.visit(garlaxyUrl);
   });
 });
 ```
-- replace `groupeXX` by your group number
 - You should see a new spec in your cypress console:
 ![login-spec](docs/login-spec.png)
 
@@ -369,54 +381,52 @@ The html login page is returned by Auth0. So you have to inspect the login page 
 
 Let's pick two elements:
 
-- `#1-email` to query the DOM element with `id='1-email'`. This will target username/email input field
-- `[name="password"]` to query the DOM element with the attribute `name="password"`. This will target the password input field
+- `#username` to query the DOM element with `id='username'`. This will target username/email input field
+- `#password` to query the DOM element with the attribute `id="password"`. This will target the password input field
 
 - In your specs, add the following lines after visiting Garlaxy:
 ```js
-cy.visit(garlaxyUrl);
-cy.get("#1-email");
-cy.get('[name="password"]');
-```
-- disable chrome security to allow selection in iframes:
-```json5
-// from e2e/cypress.json
-{
-  "chromeWebSecurity": false
-}
-```
-- Run again the `user-login` spec from cypress console.
-
-You should see that your select commands worked, from the logs on the left:
-![cypress-success-select](docs/cypress-success-select.png)
-
-Now that you can get the inputs, let's type user/password and try out to login.
-
-- Use the [.type() command](https://docs.cypress.io/api/commands/type) from cypress, and enter username and password of your recently created e2e user in Auth0:
-```js
 // from e2e/cypress/integration/login/user-login.spec.js
 //...
-// chain to the existing .get() a .type()
-cy.get("#1-email").type("E2E USERNAME");
-cy.get('[name="password"]').type("E2E PASSWORD");
+// after cy.visit(garlaxyUrl);
+cy.get("#username");
+cy.get("#password");
 ```
-- add a last line to select and [click](https://docs.cypress.io/api/commands/click.html#Syntax) on the login button:
-```js
-//...
-cy.get('[aria-label="Log In"]').click();
-```
-- Run the spec again, and you should see that you are logged in
+- Run again the `user-login` spec from cypress console.
+- You should see that your select commands worked, from the logs on the left:
+![cypress-success-select](docs/cypress-success-select.png)
 
-Last step is to expect what user is suppose to see after login.
+Now, let's write the complete spec. You want to:
+- visit your login page
+- enter correct credentials
+- assert that the user sees Garlaxy page
+- logout and make sure user is redirected to login page
 
-- Using the [should cypress command](https://docs.cypress.io/api/commands/should.html#Examples), add then following lines:
+Use the [.type() command](https://docs.cypress.io/api/commands/type) and [click() command](https://docs.cypress.io/api/commands/click) from cypress, chain the existing `.get()` with `.type()` and add following lines:
 ```js
-//...
-cy.get(".header").should("be.visible");
-cy.get(".header").should("contain.text", "GARLAXY");
+// from e2e/cypress/integration/login/user-login.spec.js
+  //...
+  // After Cypress.on() method and inside the describe(...)
+  it("should allow user to login", () => {
+    cy.visit(garlaxyUrl);
+    cy.get("#username").type("e2e@groupe13.arla-sigl.fr");
+    cy.get("#password").type("Sigl2022!").type("{enter}");
+  });
+  it("should display garlaxy home page", () => {
+    cy.get(".header").should("be.visible");
+    cy.get(".header").should("contain.text", "GARLAXY");
+  });
+  it("shoudl redirect user to login after logout", () => {
+    cy.get(".logout").click();
+    cy.get("#username").should("be.visible");
+    cy.get("#password").should("be.visible");
+  });
 ```
-- Run your spec again, you should have all assertion working without error
-- Make sure test is failing if you enter wrong user email and/or password.
+- Run the spec again, and you should see the whole scenario step by step.
+
+> Note: you can make sure test is failing if you enter wrong user email and/or password.
+
+> Note 2: You can check the whole steps [on groupe's 13 repository](https://github.com/arla-sigl-2022/groupe-13/pull/6/commits/2cfa0d3fbeb09b903283ac884142e6bf93ed7544)
 
 ## Step 4: Create a CI environment
 
